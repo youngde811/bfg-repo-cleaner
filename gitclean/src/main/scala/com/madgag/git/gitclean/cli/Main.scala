@@ -18,12 +18,32 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cli
+/*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ from Git repositories.
+ *
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+package com.madgag.git.gitclean.cli
 
 import com.madgag.git._
-import com.madgag.git.bfg.GitUtil._
-import com.madgag.git.bfg.cleaner._
-import com.madgag.git.bfg.cli.stoptrump.dontGiveUp
+import com.madgag.git.gitclean.GitUtil._
+import com.madgag.git.gitclean.cleaner._
+import com.madgag.git.gitclean.cli.stoptrump.dontGiveUp
 
 object Main extends App {
 
@@ -45,14 +65,14 @@ object Main extends App {
           println("\nUsing repo : " + repo.getDirectory.getAbsolutePath + "\n")
 
           // do this before implicitly initiating big-blob search
-          if (hasBeenProcessedByBFGBefore(repo)) {
-            println("\nThis repo has been processed by The BFG before! Will prune repo before proceeding - to avoid unnecessary cleaning work on unused objects...")
+          if (hasBeenProcessedByGITCLEANBefore(repo)) {
+            println("\nThis repo has been processed by The GITCLEAN before! Will prune repo before proceeding - to avoid unnecessary cleaning work on unused objects...")
             repo.git.gc.call()
             println("Completed prune of old objects - will now proceed with the main job!\n")
           }
 
           if (config.definesNoWork) {
-            Console.err.println("Please specify tasks for The BFG :")
+            Console.err.println("Please specify tasks for The GITCLEAN :")
             CLIConfig.parser.showUsage
           } else {
             println("Found " + config.objectProtection.fixedObjectIds.size + " objects to protect")
