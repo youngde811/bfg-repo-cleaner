@@ -49,7 +49,7 @@ import scalax.io.Input
 
 trait EngineInvocation
 
-case class BFGInvocation(args: String) extends EngineInvocation
+case class GitcleanInvocation(args: String) extends EngineInvocation
 
 case class GFBInvocation(args: Seq[String]) extends EngineInvocation
 
@@ -57,7 +57,7 @@ trait InvocableEngine[InvocationArgs <: EngineInvocation] {
     def processFor(invocation: InvocationArgs)(repoPath: DefaultPath): ProcessBuilder
 }
 
-case class InvocableBFG(java: Java, gitcleanJar: GitcleanJar) extends InvocableEngine[GitcleanInvocation] {
+case class InvocableGitclean(java: Java, gitcleanJar: GitcleanJar) extends InvocableEngine[GitcleanInvocation] {
   def processFor(invocation: GitcleanInvocation)(repoPath: DefaultPath) =
     Process(s"${java.javaCmd} -jar ${gitcleanJar.path.path} ${invocation.args}", repoPath)
 }
@@ -87,8 +87,8 @@ trait EngineType[InvocationType <: EngineInvocation] {
   }
 }
 
-case object BFG extends EngineType[GitcleanInvocation] {
-  val configName = "bfg"
+case object Gitclean extends EngineType[GitcleanInvocation] {
+  val configName = "gitclean"
 
   def argsFor(config: Input) = GitcleanInvocation(config.string)
 }

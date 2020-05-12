@@ -67,7 +67,7 @@ object Benchmark extends App {
       require(config.jarsDir.exists, s"Jars dir not found : ${config.jarsDir.path}")
       require(config.reposDir.exists, s"Repos dir not found : ${config.reposDir.path}")
 
-      val missingJars = config.bfgJars.filterNot(_.exists).map(_.toAbsolute.path)
+      val missingJars = config.gitcleanJars.filterNot(_.exists).map(_.toAbsolute.path)
 
       require(missingJars.isEmpty, s"Missing Gitclean jars : ${missingJars.mkString(",")}")
 
@@ -88,7 +88,7 @@ object Benchmark extends App {
       val invocables = for {
         java <- javas
         gitcleanJar <- config.gitcleanJars
-      } yield InvocableBFG(java, GitcleanJar.from(gitcleanJar))
+      } yield InvocableGitclean(java, GitcleanJar.from(gitcleanJar))
 
       InvocableEngineSet[GitcleanInvocation](Gitclean, invocables)
     }

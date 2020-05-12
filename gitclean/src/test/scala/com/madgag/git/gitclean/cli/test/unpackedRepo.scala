@@ -39,56 +39,13 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.gitclean.cleaner
+package com.madgag.git.gitclean.cli.test
 
-import com.madgag.git._
-import com.madgag.git.gitclean.cleaner.protection.ProtectedObjectCensus
-import com.madgag.textmatching.Literal
-
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevCommit
-import org.scalatest.matchers.Matcher
-import org.scalatest.{FlatSpec, Inspectors, Matchers}
-
-import scala.collection.convert.ImplicitConversionsToScala._
-
-class ObjectIdCleanerSpec extends FlatSpec with Matchers {
-  "cleaning" should "not have a StackOverflowError cleaning a repo with deep history" ignore new unpackedRepo("/sample-repos/deep-history.zip") {
-    val dirtyCommitWithDeepHistory = "d88ac4f99511667fc0617ea026f3a0ce8a25fd07".asObjectId
-
-    val config = ObjectIdCleaner.Config(
-      ProtectedObjectCensus.None,
-      treeBlobsCleaners = Seq(new FileDeleter(Literal("foo")))
-    )
-
-    ensureCleanerWith(config).removesDirtOfCommitsThat(haveFile("foo")).whenCleaning(dirtyCommitWithDeepHistory)
-  }
-
-}
+import com.madgag.git.gitclean
+import com.madgag.git.gitclean.cli.Main
 
 class unpackedRepo(filePath: String) extends gitclean.test.unpackedRepo(filePath) {
-  class EnsureCleanerWith(config: ObjectIdCleaner.Config) {
-    class RemoveDirtOfCommitsThat(commitM: Matcher[RevCommit]) extends Inspectors with Matchers {
-      def histOf(c: ObjectId) = repo.git.log.add(c).call.toSeq.reverse
-
-      def whenCleaning(oldCommit: ObjectId) {
-        val cleaner = new ObjectIdCleaner(config, repo.getObjectDatabase, revWalk)
-
-        forAtLeast(1, histOf(oldCommit)) { commit =>
-          commit should commitM
-        }
-
-        val cleanCommit = cleaner.cleanCommit(oldCommit)
-
-        forAll(histOf(cleanCommit)) { commit =>
-          commit shouldNot commitM
-        }
-      }
-    }
-
-    def removesDirtOfCommitsThat[T](commitM: Matcher[RevCommit]) = new RemoveDirtOfCommitsThat(commitM)
+  def run(options: String) {
+    Main.main(options.split(' ') :+ repo.getDirectory.getAbsolutePath)
   }
-
-  def ensureCleanerWith(config: ObjectIdCleaner.Config) = new EnsureCleanerWith(config)
 }
-

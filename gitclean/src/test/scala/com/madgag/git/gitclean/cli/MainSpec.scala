@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012, 2013 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,12 +39,14 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cli
+package com.madgag.git.gitclean.cli
 
 import com.madgag.git._
-import com.madgag.git.bfg.cli.test.unpackedRepo
+import com.madgag.git.gitclean.cli.test.unpackedRepo
+
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevCommit
+
 import org.scalatest.{FlatSpec, Inspectors, Matchers, OptionValues}
 
 import scalax.file.ImplicitConversions._
@@ -42,7 +65,6 @@ class MainSpec extends FlatSpec with Matchers with OptionValues with Inspectors 
       }
     }
   }
-
 
   "removing empty trees" should "work" in new unpackedRepo("/sample-repos/folder-example.git.zip") {
     ensureRemovalFrom(commitHist()).ofCommitsThat(haveFolder("secret-files")) {
@@ -92,6 +114,7 @@ class MainSpec extends FlatSpec with Matchers with OptionValues with Inspectors 
 
     val badBlobs = Set(abbrId("db59"), abbrId("86f9"))
     val blobIdsFile = Path.createTempFile()
+
     blobIdsFile.writeStrings(badBlobs.map(_.name()), "\n")
 
     ensureRemovalFrom(commitHist()).ofCommitsThat(haveCommitWhereObjectIds(contain(abbrId("db59")))) {
