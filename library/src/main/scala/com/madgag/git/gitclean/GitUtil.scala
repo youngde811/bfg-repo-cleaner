@@ -81,7 +81,7 @@ object GitUtil {
     wcConfig.install()
   }
 
-  def hasBeenProcessedByBFGBefore(repo: Repository): Boolean = {
+  def hasBeenProcessedByGitcleanBefore(repo: Repository): Boolean = {
     // This method just checks the tips of all refs - a good-enough indicator for our purposes...
 
     implicit val revWalk = new RevWalk(repo)

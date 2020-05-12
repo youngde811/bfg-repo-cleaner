@@ -70,7 +70,7 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
     implicit val repo = unpackRepo("/sample-repos/example.git.zip")
     implicit val reader = repo.newObjectReader
 
-    hasBeenProcessedByBFGBefore(repo) shouldBe false
+    hasBeenProcessedByGitcleanBefore(repo) shouldBe false
 
     val blobsToRemove = Set(abbrId("06d740"))
     RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus(Set("HEAD")), OldIdsPublic,
@@ -87,7 +87,7 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
 
     allCommits.head.getFullMessage should include(FormerCommitFooter.Key)
 
-    hasBeenProcessedByBFGBefore(repo) shouldBe true
+    hasBeenProcessedByGitcleanBefore(repo) shouldBe true
   }
 
   "Repo rewriter" should "clean commit messages even on clean branches, because commit messages may reference commits from dirty ones" in {

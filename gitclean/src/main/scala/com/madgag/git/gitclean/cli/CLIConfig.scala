@@ -133,7 +133,7 @@ object CLIConfig {
       (v, c) => c.copy(protectBlobsFromRevisions = v.split(',').toSet)
     }
 
-    opt[Unit]("no-blob-protection").text("allow the BFG to modify even your *latest* commit. Not recommended: you should have "
+    opt[Unit]("no-blob-protection").text("allow gitclean to modify even your *latest* commit. Not recommended: you should have "
       + "already ensured your latest commit is clean.").action {
       (_, c) => c.copy(protectBlobsFromRevisions = Set.empty)
     }
