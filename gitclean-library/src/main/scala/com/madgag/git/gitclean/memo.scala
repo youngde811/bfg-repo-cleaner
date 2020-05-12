@@ -39,25 +39,61 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.google.common.cache.{CacheBuilder, CacheLoader, CacheStats, LoadingCache}
+import com.madgag.git.gitclean.cleaner._
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import scala.collection.JavaConverters._
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+trait Memo[K, V] {
+  def apply(z: K => V): MemoFunc[K, V]
+}
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+trait MemoFunc[K,V] extends (K => V) {
+  def asMap(): Map[K,V]
+
+  def stats(): CacheStats
+}
+
+object MemoUtil {
+  def memo[K, V](f: (K => V) => MemoFunc[K, V]): Memo[K, V] = new Memo[K, V] {
+    def apply(z: K => V) = f(z)
+  }
+
+  // A caching wrapper for a function (V => V), backed by a no-eviction LoadingCache from Google Collections.
+
+  def concurrentCleanerMemo[V](fixedEntries: Set[V] = Set.empty[V]): Memo[V, V] = {
+    memo[V, V] {
+      (f: Cleaner[V]) =>
+        lazy val permanentCache = loaderCacheFor(f)(fix)
+
+        def fix(v: V) {
+          // enforce that once any value is returned, it is 'good' and therefore an identity-mapped key as well
+
+          permanentCache.put(v, v)
+        }
+
+        fixedEntries foreach fix
+
+        new MemoFunc[V, V] {
+          def apply(k: V) = permanentCache.get(k)
+
+          def asMap() = permanentCache.asMap().asScala.view.filter {
+            case (oldId, newId) => newId != oldId
+          }.toMap
+
+          override def stats(): CacheStats = permanentCache.stats()
+        }
+    }
+  }
+
+  def loaderCacheFor[K, V](calc: K => V)(postCalc: V => Unit): LoadingCache[K, V] =
+    CacheBuilder.newBuilder.asInstanceOf[CacheBuilder[K, V]].recordStats().build(new CacheLoader[K, V] {
+      def load(key: K): V = {
+        val v = calc(key)
+        postCalc(v)
+        v
+      }
+    })
 }

@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2012 Roberto Tyley
+ * Copyright (c) 2015 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
  * or troublesome blobs from Git repositories.
@@ -39,25 +39,40 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git.LFS.Pointer
+import com.madgag.git.test._
+import org.eclipse.jgit.lib.Constants._
+import org.eclipse.jgit.lib.ObjectInserter
+import org.scalatest.{FlatSpec, Matchers, OptionValues}
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import scalax.file.Path
+import scalax.file.Path._
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+class LFSSpec extends FlatSpec with Matchers with OptionValues {
+  "Our implementation of Git LFS Pointers" should "create pointers that have the same Git id as the ones produced by `git lfs pointer`" in {
+    val pointer = LFS.Pointer("b2893eddd9b394bfb7efadafda2ae0be02c573fdd83a70f26c781a943f3b7016", 21616)
+    val pointerObjectId = new ObjectInserter.Formatter().idFor(OBJ_BLOB, pointer.bytes)
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+    pointerObjectId shouldBe "1d90744cffd9e9f324870ed60b6d1258e56a39e1".asObjectId
+  }
+
+  it should "have the correctly sharded path" in {
+    val pointer = LFS.Pointer("b2893eddd9b394bfb7efadafda2ae0be02c573fdd83a70f26c781a943f3b7016", 21616)
+
+    pointer.path shouldBe Path("b2", "89", "b2893eddd9b394bfb7efadafda2ae0be02c573fdd83a70f26c781a943f3b7016")
+  }
+
+  it should "calculate pointers correctly directly from the Git database, creating a temporary file" in {
+    implicit val repo = unpackRepo("/sample-repos/example.git.zip")
+    implicit val (revWalk, reader) = repo.singleThreadedReaderTuple
+
+    val tmpFile = createTempFile(s"gitclean.test.git-lfs.conv")
+    val pointer = LFS.pointerFor(abbrId("06d7").open, tmpFile)
+
+    pointer shouldBe Pointer("5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef", 1024)
+
+    tmpFile.size.value shouldBe 1024
+  }
 }

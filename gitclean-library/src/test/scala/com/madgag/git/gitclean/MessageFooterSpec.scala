@@ -39,25 +39,28 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git.gitclean.model.{CommitNode, Footer}
+import org.eclipse.jgit.lib.PersonIdent
+import org.scalatest.{FlatSpec, Matchers}
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+class MessageFooterSpec extends FlatSpec with Matchers {
+  val person = new PersonIdent("Frodo Baggins", "frodo@hobbits.com")
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+  def commit(m: String) = CommitNode(person, person, m)
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+  "Message footers" should "append footer without new paragraph if footers already present" in {
+
+    val updatedCommit = commit("Sub\n\nmessage\n\nSigned-off-by: Bilbo Baggins <bilgo@hobbits.com>") add Footer("Foo", "Bar")
+
+    updatedCommit.message shouldBe "Sub\n\nmessage\n\nSigned-off-by: Bilbo Baggins <bilbo@hobbits.com>\nFoo: Bar"
+  }
+
+  it should "create paragraph break if no footers already present" in {
+
+    val updatedCommit = commit("Sub\n\nmessage") add Footer("Foo", "Bar")
+
+    updatedCommit.message shouldBe "Sub\n\nmessage\n\nFoo: Bar"
+  }
 }

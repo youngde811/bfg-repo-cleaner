@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2012 Roberto Tyley
+ * Copyright (c) 2015 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
  * or troublesome blobs from Git repositories.
@@ -39,29 +39,59 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import com.typesafe.sbt.pgp.PgpKeys._
-import sbt._
-import sbtrelease.ReleasePlugin.autoImport._
-import sbtrelease.ReleaseStateTransformations._
+package com.madgag.git
 
-object common {
-  lazy val releaseSignedArtifactsSettings = Seq(
-    releaseProcess ~= {
-      s: Seq[ReleaseStep] =>
-        lazy val publishArtifactsAction = { st: State =>
-          val extracted = Project.extract(st)
-          val ref = extracted.get(Keys.thisProjectRef)
-          extracted.runAggregated(publishSigned in Global in ref, st)
-        }
+import java.nio.charset.Charset
+import java.security.{DigestOutputStream, MessageDigest}
 
-        s map {
-          case `publishArtifacts` => publishArtifacts.copy(action = publishArtifactsAction)
-          case step => step
-        } map {
-          _.copy(enableCrossBuild = false)
-        }
+import com.google.common.base.Splitter
+
+import com.madgag.git.bfg.model.FileName
+
+import org.apache.commons.codec.binary.Hex._
+import org.eclipse.jgit.lib.ObjectLoader
+
+import scala.collection.JavaConverters._
+import scalax.file.Path
+import scalax.file.defaultfs.DefaultPath
+
+object LFS {
+  val ObjectsPath = Path("lfs" , "objects")
+  val PointerCharset = Charset.forName("UTF-8")
+
+  case class Pointer(shaHex: String, blobSize: Long) {
+
+    lazy val text = s"""|version https://git-lfs.github.com/spec/v1
+                        |oid sha256:$shaHex
+                        |size $blobSize
+                        |""".stripMargin
+
+    lazy val bytes = text.getBytes(PointerCharset)
+    lazy val path = Path(shaHex.substring(0, 2), shaHex.substring(2, 4), shaHex)
+  }
+
+  object Pointer {
+    val splitter = Splitter.on('\n').omitEmptyStrings().trimResults().withKeyValueSeparator(' ')
+
+    def parse(bytes: Array[Byte]) = {
+      val text = new String(bytes, PointerCharset)
+      val valuesByKey= splitter.split(text).asScala
+      val size = valuesByKey("size").toLong
+      val shaHex = valuesByKey("oid").stripPrefix("sha256:")
+
+      Pointer(shaHex, size)
     }
-  )
+  }
 
-  def gitcleanProject(name: String) = Project(name, file(name)) settings releaseSignedArtifactsSettings
+  val GitAttributesFileName = FileName(".gitattributes")
+
+  def pointerFor(loader: ObjectLoader, tmpFile: DefaultPath) = {
+    val digest = MessageDigest.getInstance("SHA-256")
+
+    for {
+      outStream <- tmpFile.outputStream()
+    } loader.copyTo(new DigestOutputStream(outStream, digest))
+
+    Pointer(encodeHexString(digest.digest()), loader.getSize)
+  }
 }

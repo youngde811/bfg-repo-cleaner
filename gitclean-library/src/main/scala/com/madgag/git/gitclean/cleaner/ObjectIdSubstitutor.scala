@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2012 Roberto Tyley
+ * Copyright (c) 2012, 2013 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
  * or troublesome blobs from Git repositories.
@@ -39,25 +39,43 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cleaner
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git._
+import com.madgag.git.gitclean.GitUtil._
+import com.madgag.git.gitclean.cleaner.ObjectIdSubstitutor._
+import org.eclipse.jgit.lib.{AbbreviatedObjectId, ObjectId, ObjectReader}
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+class CommitMessageObjectIdsUpdater(objectIdSubstitutor: ObjectIdSubstitutor) extends CommitNodeCleaner {
+  override def fixer(kit: CommitNodeCleaner.Kit) = commitNode => commitNode.copy(message =
+    objectIdSubstitutor.replaceOldIds(commitNode.message,
+      kit.threadLocalResources.reader(), kit.mapper))
+}
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+object ObjectIdSubstitutor {
+  object OldIdsPrivate extends ObjectIdSubstitutor {
+    def format(oldIdText: String, newIdText: String) = newIdText
+  }
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+  object OldIdsPublic extends ObjectIdSubstitutor {
+    def format(oldIdText: String, newIdText: String) = s"$newIdText [formerly $oldIdText]"
+  }
+
+  val hexRegex = """\b\p{XDigit}{10,40}\b""".r // choose minimum size based on size of project??
+}
+
+trait ObjectIdSubstitutor {
+  def format(oldIdText: String, newIdText: String): String
+
+  // slow!
+  def replaceOldIds(message: String, reader: ObjectReader, mapper: Cleaner[ObjectId]): String = {
+    val substitutionOpts = for {
+      m: String <- hexRegex.findAllIn(message).toSet
+      objectId <- reader.resolveExistingUniqueId(AbbreviatedObjectId.fromString(m)).toOption
+    } yield mapper.replacement(objectId).map(newId => m -> format(m, reader.abbreviate(newId, m.length).name))
+
+    val substitutions = substitutionOpts.flatten.toMap
+
+    if (substitutions.isEmpty) message else hexRegex.replaceSomeIn(message, m => substitutions.get(m.matched))
+  }
 }

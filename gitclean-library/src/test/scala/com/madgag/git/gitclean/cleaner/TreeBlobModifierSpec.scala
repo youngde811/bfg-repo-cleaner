@@ -39,25 +39,38 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cleaner
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.google.common.util.concurrent.AtomicLongMap
+import com.madgag.git.gitclean.cleaner.ObjectIdSubstitutor._
+import com.madgag.git.gitclean.cleaner.protection.ProtectedObjectCensus
+import com.madgag.git.gitclean.model.TreeBlobEntry
+import com.madgag.git.test._
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import org.scalatest.{FlatSpec, Matchers}
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+import scala.collection.convert.ImplicitConversionsToScala._
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+class TreeBlobModifierSpec extends FlatSpec with Matchers {
+  "TreeBlobModifier" should "only clean a given tree entry once" in {
+    class CountingTreeBlobModifier extends TreeBlobModifier {
+      val counts = AtomicLongMap.create[TreeBlobEntry]
+
+      def fix(entry: TreeBlobEntry) = {
+        counts.incrementAndGet(entry)
+        (entry.mode, entry.objectId)
+      }
+    }
+
+    implicit val repo = unpackRepo("/sample-repos/taleOfTwoBranches.git.zip")
+
+    val countingTreeBlobModifier = new CountingTreeBlobModifier()
+
+    RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus(Set("HEAD")), OldIdsPublic, treeBlobsCleaners = Seq(countingTreeBlobModifier)))
+
+    val endCounts = countingTreeBlobModifier.counts.asMap().toMap
+
+    endCounts.size should be >= 4
+    all (endCounts.values) shouldBe 1
+  }
 }

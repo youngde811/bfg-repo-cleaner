@@ -39,25 +39,40 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cleaner
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
+import java.nio.charset.CodingErrorAction._
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import com.madgag.git.bfg.model.TreeBlobEntry
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+import org.eclipse.jgit.diff.RawText
+import org.eclipse.jgit.lib.ObjectStream
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+import scala.util.Try
+import scalax.io.managed.InputStreamResource
+
+trait BlobCharsetDetector {
+  // should return None if this is a binary file that can not be converted to text
+  def charsetFor(entry: TreeBlobEntry, streamResource: InputStreamResource[ObjectStream]): Option[Charset]
 }
+
+object QuickBlobCharsetDetector extends BlobCharsetDetector {
+  val CharSets = Seq(Charset.forName("UTF-8"), Charset.defaultCharset(), Charset.forName("ISO-8859-1")).distinct
+
+  def charsetFor(entry: TreeBlobEntry, streamResource: InputStreamResource[ObjectStream]): Option[Charset] =
+    Some(streamResource.bytes.take(8000).toArray).filterNot(RawText.isBinary).flatMap {
+      sampleBytes =>
+      val b = ByteBuffer.wrap(sampleBytes)
+
+      CharSets.find(cs => Try(decode(b, cs)).isSuccess)
+    }
+
+  private def decode(b: ByteBuffer, charset: Charset) {
+    charset.newDecoder.onMalformedInput(REPORT).onUnmappableCharacter(REPORT).decode(b)
+  }
+}
+
+
+

@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2012 Roberto Tyley
+ * Copyright (c) 2012, 2013 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
  * or troublesome blobs from Git repositories.
@@ -39,25 +39,45 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cli
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git.bfg.model.FileName
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import org.scalatest.{FlatSpec, Matchers}
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+class CLIConfigSpecs extends FlatSpec with Matchers {
+  def parse(args: String) = CLIConfig.parser.parse(args.split(' ') :+ "my-repo.git", CLIConfig()).get.filterContentPredicate
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+  "CLI config" should "understand lone include" in {
+    val predicate = parse("-fi *.txt")
+
+    predicate(FileName("panda")) shouldBe false
+    predicate(FileName("foo.txt")) shouldBe true
+    predicate(FileName("foo.java")) shouldBe false
+  }
+
+  it should "understand lone exclude" in {
+    val predicate = parse("-fe *.txt")
+
+    predicate(FileName("panda")) shouldBe true
+    predicate(FileName("foo.txt")) shouldBe false
+    predicate(FileName("foo.java")) shouldBe true
+  }
+
+  it should "understand include followed by exclude" in {
+    val predicate = parse("-fi *.txt -fe Poison.*")
+
+    predicate(FileName("panda")) shouldBe false
+    predicate(FileName("foo.txt")) shouldBe true
+    predicate(FileName("foo.java")) shouldBe false
+    predicate(FileName("Poison.txt")) shouldBe false
+  }
+
+  it should "understand exclude followed by include" in {
+    val predicate = parse("-fe *.xml -fi hbm.xml")
+
+    predicate(FileName("panda")) shouldBe true
+    predicate(FileName("foo.xml")) shouldBe false
+    predicate(FileName("hbm.xml")) shouldBe true
+  }
 }
