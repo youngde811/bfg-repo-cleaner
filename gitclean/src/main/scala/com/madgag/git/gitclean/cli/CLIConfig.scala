@@ -48,8 +48,10 @@ import com.madgag.git.gitclean.GitUtil._
 import com.madgag.git.gitclean.cleaner._
 import com.madgag.git.gitclean.cleaner.kit.BlobInserter
 import com.madgag.git.gitclean.cleaner.protection.ProtectedObjectCensus
-import com.madgag.git.gitclean.model.FileName.ImplicitConversions._
-import com.madgag.git.gitclean.model.{FileName, Tree, TreeBlobEntry, TreeBlobs, TreeSubtrees}
+
+import com.madgag.git.bfg.model.FileName.ImplicitConversions._
+import com.madgag.git.bfg.model.{FileName, Tree, TreeBlobEntry, TreeBlobs, TreeSubtrees}
+
 import com.madgag.git.{SizedObject, _}
 import com.madgag.inclusion.{IncExcExpression, _}
 import com.madgag.text.ByteSize

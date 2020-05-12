@@ -45,7 +45,9 @@ import java.nio.charset.Charset
 import java.security.{DigestOutputStream, MessageDigest}
 
 import com.google.common.base.Splitter
-import com.madgag.git.gitclean.model.FileName
+
+import com.madgag.git.bfg.model.FileName
+
 import org.apache.commons.codec.binary.Hex._
 import org.eclipse.jgit.lib.ObjectLoader
 

@@ -45,7 +45,9 @@ import java.nio.charset.Charset
 
 import com.madgag.git.LFS._
 import com.madgag.git._
-import com.madgag.git.gitclean.model._
+
+import com.madgag.git.bfg.model._
+
 import com.madgag.git.gitclean.{MemoFunc, MemoUtil}
 import com.madgag.textmatching.{Glob, TextMatcher}
 

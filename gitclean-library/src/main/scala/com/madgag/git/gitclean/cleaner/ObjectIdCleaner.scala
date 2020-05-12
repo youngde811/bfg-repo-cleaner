@@ -45,8 +45,11 @@ import com.madgag.collection.concurrent.ConcurrentMultiMap
 import com.madgag.git._
 import com.madgag.git.gitclean.GitUtil._
 import com.madgag.git.gitclean.cleaner.protection.{ProtectedObjectCensus, ProtectedObjectDirtReport}
-import com.madgag.git.gitclean.model.{Tree, TreeSubtrees, _}
+
+import com.madgag.git.gitclean.{Tree, TreeSubtrees, _}
+
 import com.madgag.git.gitclean.{CleaningMapper, Memo, MemoFunc, MemoUtil}
+
 import org.eclipse.jgit.lib.Constants._
 import org.eclipse.jgit.lib._
 import org.eclipse.jgit.revwalk.{RevCommit, RevTag, RevWalk}

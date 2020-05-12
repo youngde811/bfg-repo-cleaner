@@ -42,7 +42,9 @@
 package com.madgag.git.gitclean.cleaner
 
 import com.madgag.git.gitclean.MemoUtil
-import com.madgag.git.gitclean.model.{TreeBlobEntry, _}
+
+import com.madgag.git.bfg.model.{TreeBlobEntry, _}
+
 import org.eclipse.jgit.lib.ObjectId
 
 trait TreeBlobModifier extends Cleaner[TreeBlobs] {

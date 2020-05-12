@@ -44,7 +44,9 @@ package com.madgag.git.gitclean.cleaner
 import java.io.ByteArrayOutputStream
 
 import com.madgag.git.ThreadLocalObjectDatabaseResources
-import com.madgag.git.gitclean.model.TreeBlobEntry
+
+import com.madgag.git.bfg.model.TreeBlobEntry
+
 import org.eclipse.jgit.lib.Constants.OBJ_BLOB
 
 import scalax.io.Resource

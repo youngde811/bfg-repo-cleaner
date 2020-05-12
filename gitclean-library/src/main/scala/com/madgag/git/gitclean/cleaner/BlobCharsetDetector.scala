@@ -45,7 +45,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction._
 
-import com.madgag.git.gitclean.model.TreeBlobEntry
+import com.madgag.git.bfg.model.TreeBlobEntry
 
 import org.eclipse.jgit.diff.RawText
 import org.eclipse.jgit.lib.ObjectStream
