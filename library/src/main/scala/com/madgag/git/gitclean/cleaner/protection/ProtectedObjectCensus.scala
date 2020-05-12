@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,9 +39,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cleaner.protection
+package com.madgag.git.gitclean.cleaner.protection
 
 import com.madgag.git._
+
 import org.eclipse.jgit.lib.{ObjectId, Repository}
 import org.eclipse.jgit.revwalk._
 
@@ -55,12 +77,11 @@ import org.eclipse.jgit.revwalk._
  * state - such as the message, or author, or referenced commit Ids (and consequently the object Id of the target
  * object itself) is very much up for grabs. I gotta change your history, or I've no business being here.
  */
-object ProtectedObjectCensus {
 
+object ProtectedObjectCensus {
   val None = ProtectedObjectCensus()
 
   def apply(revisions: Set[String])(implicit repo: Repository): ProtectedObjectCensus = {
-
     implicit val (revWalk, reader) = repo.singleThreadedReaderTuple
 
     val objectProtection = revisions.groupBy { revision =>
@@ -77,9 +98,11 @@ object ProtectedObjectCensus {
     val directBlobProtection = treeAndBlobProtection collect {
       case (Left(blob), p) => blob.getId -> p
     }
+
     val treeProtection = treeAndBlobProtection collect {
       case (Right(tree), p) => tree -> p
     }
+
     val indirectBlobProtection = treeProtection.keys.flatMap(tree => allBlobsUnder(tree).map(_ -> tree)).groupBy(_._1).mapValues(_.map(_._2).toSet)
 
     ProtectedObjectCensus(objectProtection, treeProtection, directBlobProtection, indirectBlobProtection)
@@ -87,16 +110,16 @@ object ProtectedObjectCensus {
 }
 
 case class ProtectedObjectCensus(protectorRevsByObject: Map[RevObject, Set[String]] = Map.empty,
-                            treeProtection: Map[RevTree, Set[RevObject]] = Map.empty,
-                            directBlobProtection: Map[ObjectId, Set[RevObject]] = Map.empty,
-                            indirectBlobProtection: Map[ObjectId, Set[RevTree]] = Map.empty) {
+  treeProtection: Map[RevTree, Set[RevObject]] = Map.empty,
+  directBlobProtection: Map[ObjectId, Set[RevObject]] = Map.empty,
+  indirectBlobProtection: Map[ObjectId, Set[RevTree]] = Map.empty) {
 
   val isEmpty = protectorRevsByObject.isEmpty
 
   lazy val blobIds: Set[ObjectId] = directBlobProtection.keySet ++ indirectBlobProtection.keySet
-
   lazy val treeIds = treeProtection.keySet
 
   // blobs only for completeness here
+
   lazy val fixedObjectIds: Set[ObjectId] = treeIds ++ blobIds
 }

@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,10 +39,11 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cleaner
+package com.madgag.git.gitclean.cleaner
 
 import com.madgag.git._
-import com.madgag.git.bfg.Timing
+import com.madgag.git.gitclean.Timing
+
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevSort._
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
@@ -63,19 +85,18 @@ When updating a Tree, the User has no right to muck with sub-trees. They can onl
  */
 
 object RepoRewriter {
-
   def rewrite(repo: org.eclipse.jgit.lib.Repository, objectIdCleanerConfig: ObjectIdCleaner.Config): Map[ObjectId, ObjectId] = {
     assert(!repo.getAllRefs.isEmpty, "Can't find any refs in repo at " + repo.getDirectory.getAbsolutePath)
 
     implicit val refDatabase = repo.getRefDatabase
 
     val reporter: Reporter = new CLIReporter(repo)
+
     implicit val progressMonitor = reporter.progressMonitor
 
     val allRefs = repo.getAllRefs.values
 
     def createRevWalk: RevWalk = {
-
       val revWalk = new RevWalk(repo)
 
       revWalk.sort(TOPO) // crucial to ensure we visit parents BEFORE children, otherwise blow stack
@@ -91,11 +112,9 @@ object RepoRewriter {
     implicit val reader = revWalk.getObjectReader
 
     reporter.reportRefsForScan(allRefs)
-
     reporter.reportObjectProtection(objectIdCleanerConfig)(repo.getObjectDatabase, revWalk)
 
     val objectIdCleaner = new ObjectIdCleaner(objectIdCleanerConfig, repo.getObjectDatabase, revWalk)
-
     val commits = revWalk.toList
 
     def clean(commits: Seq[RevCommit]) {
@@ -118,16 +137,17 @@ object RepoRewriter {
 
     def updateRefsWithCleanedIds() {
       val refUpdateCommands = for (ref <- repo.nonSymbolicRefs;
-                                   (oldId, newId) <- objectIdCleaner.substitution(ref.getObjectId)
+        (oldId, newId) <- objectIdCleaner.substitution(ref.getObjectId)
       ) yield new ReceiveCommand(oldId, newId, ref.getName)
 
       if (refUpdateCommands.isEmpty) {
-        println("\nBFG aborting: No refs to update - no dirty commits found??\n")
+        println("Gitclean aborting: No refs to update - no dirty commits found!")
       } else {
         reporter.reportRefUpdateStart(refUpdateCommands)
 
-        Timing.measureTask("...Ref update", refUpdateCommands.size) {
+        Timing.measureTask("Ref update", refUpdateCommands.size) {
           // Hack a fix for issue #23 : Short-cut the calculation that determines an update is NON-FF
+
           val quickMergeCalcRevWalk = new RevWalk(revWalk.getObjectReader) {
             override def isMergedInto(base: RevCommit, tip: RevCommit) =
               if (tip == objectIdCleaner(base)) false else super.isMergedInto(base, tip)
@@ -141,14 +161,9 @@ object RepoRewriter {
       }
     }
 
-
     clean(commits)
-
     updateRefsWithCleanedIds()
-
     objectIdCleaner.stats()
-
     objectIdCleaner.cleanedObjectMap()
   }
-
 }

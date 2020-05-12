@@ -1,14 +1,36 @@
-package com.madgag.git.bfg.cleaner
+/*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+package com.madgag.git.gitclean.cleaner
 
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import com.madgag.collection.concurrent.ConcurrentMultiMap
 import com.madgag.git._
-import com.madgag.git.bfg.cleaner.protection.{ProtectedObjectCensus, ProtectedObjectDirtReport}
-import com.madgag.git.bfg.model.FileName
+import com.madgag.git.gitclean.cleaner.protection.{ProtectedObjectCensus, ProtectedObjectDirtReport}
+import com.madgag.git.gitclean.model.FileName
 import com.madgag.text.Text._
 import com.madgag.text.{ByteSize, Tables, Text}
+
 import org.eclipse.jgit.diff.DiffEntry.ChangeType._
 import org.eclipse.jgit.diff._
 import org.eclipse.jgit.lib.FileMode._
@@ -21,7 +43,6 @@ import scala.collection.immutable.SortedMap
 import scalax.file.Path
 
 trait Reporter {
-
   val progressMonitor: ProgressMonitor
 
   def reportRefsForScan(allRefs: Traversable[Ref])(implicit objReader: ObjectReader)
@@ -36,7 +57,6 @@ trait Reporter {
 }
 
 class CLIReporter(repo: Repository) extends Reporter {
-
   lazy val reportsDir = {
     val now = new Date()
     def format(s: String) = new SimpleDateFormat(s).format(now)
@@ -63,23 +83,24 @@ class CLIReporter(repo: Repository) extends Reporter {
     } withDefault Seq.empty
 
     refsByObjType.foreach {
-      case (typ, refs) => println("Found " + refs.size + " " + Constants.typeString(typ) + "-pointing refs : " + abbreviate(refs.map(_.getName).toSeq, "...", 4).mkString(", "))
+      case (typ, refs) => println("Found " + refs.size + " " + Constants.typeString(typ) + "-pointing refs : "
+          + abbreviate(refs.map(_.getName).toSeq, "...", 4).mkString(", "))
     }
   }
-
 
   // abort due to Dirty Tips on Private run - user needs to manually clean
   // warn due to Dirty Tips on Public run - it's not so serious if users publicise dirty tips.
   // if no protection
+
   def reportObjectProtection(objectIdCleanerConfig: ObjectIdCleaner.Config)(implicit objectDB: ObjectDatabase, revWalk: RevWalk) {
     println(title("Protected commits"))
 
     if (objectIdCleanerConfig.protectedObjectCensus.isEmpty) {
-      println("You're not protecting any commits, which means the BFG will modify the contents of even *current* commits.\n\n" +
+      println("You're not protecting any commits, which means Gitclean will modify the contents of even *current* commits.\n\n" +
         "This isn't recommended - ideally, if your current commits are dirty, you should fix up your working copy and " +
-        "commit that, check that your build still works, and only then run the BFG to clean up your history.")
+        "commit that, check that your build still works, and only then run Gitclean to clean up your history.")
     } else {
-      println("These are your protected commits, and so their contents will NOT be altered:\n")
+      println("These are your protected commits, and so their contents will NOT be altered.")
 
       val unprotectedConfig = objectIdCleanerConfig.copy(protectedObjectCensus = ProtectedObjectCensus.None)
 
@@ -95,6 +116,7 @@ class CLIReporter(repo: Repository) extends Reporter {
     def diffDetails(d: DiffEntry) = {
       val side = DiffEntry.Side.OLD
       val id: ObjectId = d.getId(side).toObjectId
+
       DiffSideDetails(id, d.getPath(side), d.getMode(side), id.sizeOpt)
     }
 
@@ -108,6 +130,7 @@ class CLIReporter(repo: Repository) extends Reporter {
     }
 
     val protectedDirtDir = reportsDir / "protected-dirt"
+
     protectedDirtDir.doCreateDirectory()
 
     val reports = ProtectedObjectDirtReport.reportsFor(objectIdCleanerConfig, objectDB)
@@ -124,6 +147,7 @@ class CLIReporter(repo: Repository) extends Reporter {
               println(objectTitle + " - dirty")
             } else {
               println(objectTitle + " - contains " + plural(diffEntries, "dirty file") + " : ")
+
               abbreviate(diffEntries.view.map(diffDetails).map(fileInfo), "...").foreach {
                 dirtyFile => println("\t- " + dirtyFile)
               }
@@ -134,20 +158,18 @@ class CLIReporter(repo: Repository) extends Reporter {
               diffFile.writeStrings(diffEntries.map {
                 diffEntry =>
                   val de = diffDetails(diffEntry)
-
                   val modifiedLines = if (diffEntry.getChangeType == MODIFY) diffEntry.editList.map(changedLinesFor) else None
-
                   val elems = Seq(de.id.name, diffEntry.getChangeType.name, de.mode.name, de.path, de.size.getOrElse(""), modifiedLines.getOrElse(""))
 
                   elems.mkString(",")
               }, "\n")
-              }
             }
         }
+    }
 
     val dirtyReports = reports.filter(_.objectProtectsDirt)
-    if (dirtyReports.nonEmpty) {
 
+    if (dirtyReports.nonEmpty) {
       println(s"""
       |WARNING: The dirty content above may be removed from other commits, but as
       |the *protected* commits still use it, it will STILL exist in your repository.
@@ -157,7 +179,7 @@ class CLIReporter(repo: Repository) extends Reporter {
       |${protectedDirtDir.path + protectedDirtDir.separator}
       |
       |If you *really* want this content gone, make a manual commit that removes it,
-      |and then run the BFG on a fresh copy of your repo.
+      |and then run Gitclean on a fresh copy of your repo.
        """.stripMargin)
       // TODO would like to abort here if we are cleaning 'private' data.
     }
@@ -176,20 +198,23 @@ class CLIReporter(repo: Repository) extends Reporter {
 
   def reportResults(commits: List[RevCommit], objectIdCleaner: ObjectIdCleaner) {
     def reportTreeDirtHistory() {
-
       val dirtHistoryElements = math.max(20, math.min(60, commits.size))
+
       def cut[A](xs: Seq[A], n: Int) = {
         val avgSize = xs.size.toFloat / n
         def startOf(unit: Int): Int = math.round(unit * avgSize)
         (0 until n).view.map(u => xs.slice(startOf(u), startOf(u + 1)))
       }
+
       val treeDirtHistory = cut(commits, dirtHistoryElements).map {
         case commits if commits.isEmpty => ' '
         case commits if (commits.exists(c => objectIdCleaner.isDirty(c.getTree))) => 'D'
         case commits if (commits.exists(objectIdCleaner.isDirty)) => 'm'
         case _ => '.'
       }.mkString
+
       def leftRight(markers: Seq[String]) = markers.mkString(" " * (treeDirtHistory.length - markers.map(_.size).sum))
+
       println(title("Commit Tree-Dirt History"))
       println("\t" + leftRight(Seq("Earliest", "Latest")))
       println("\t" + leftRight(Seq("|", "|")))
@@ -200,6 +225,7 @@ class CLIReporter(repo: Repository) extends Reporter {
 
       val firstModifiedCommit = commits.find(objectIdCleaner.isDirty).map(_ -> "First modified commit")
       val lastDirtyCommit = commits.reverse.find(c => objectIdCleaner.isDirty(c.getTree)).map(_ -> "Last dirty commit")
+
       val items = for {
         (commit, desc) <- firstModifiedCommit ++ lastDirtyCommit
         (before, after) <- objectIdCleaner.substitution(commit)
@@ -222,8 +248,10 @@ class CLIReporter(repo: Repository) extends Reporter {
       implicit val fileNameOrdering = Ordering[String].on[FileName](_.string)
 
       val dataByFilename = SortedMap[FileName, Set[FI]](fileData.toMap.toSeq: _*)
+
       if (dataByFilename.nonEmpty) {
         println(title(s"$actionType files"))
+
         Tables.formatTable(tableTitles, dataByFilename.map(f).toSeq).map("\t" + _).foreach(println)
 
         (reportsDir / s"${actionType.toLowerCase}-files.txt").writeStrings(dataByFilename.flatMap {
@@ -248,7 +276,7 @@ class CLIReporter(repo: Repository) extends Reporter {
 
     cacheStatsFile.writeStrings(objectIdCleaner.stats().seq.map(_.toString()), "\n")
 
-    println("\nBFG run is complete! When ready, run: git reflog expire --expire=now --all && git gc --prune=now --aggressive")
+    println("\nGitclean run is complete! When ready, run: git reflog expire --expire=now --all && git gc --prune=now --aggressive")
 
   }
 

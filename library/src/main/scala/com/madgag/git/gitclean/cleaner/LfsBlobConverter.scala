@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2015 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,15 +39,16 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cleaner
+package com.madgag.git.gitclean.cleaner
 
 import java.nio.charset.Charset
 
 import com.madgag.git.LFS._
 import com.madgag.git._
-import com.madgag.git.bfg.model._
-import com.madgag.git.bfg.{MemoFunc, MemoUtil}
+import com.madgag.git.gitclean.model._
+import com.madgag.git.gitclean.{MemoFunc, MemoUtil}
 import com.madgag.textmatching.{Glob, TextMatcher}
+
 import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.eclipse.jgit.lib.{ObjectId, ObjectReader}
 
@@ -39,15 +61,10 @@ class LfsBlobConverter(
   lfsGlobExpression: String,
   repo: FileRepository
 ) extends TreeBlobModifier {
-
   val lfsObjectsDir = repo.getDirectory / LFS.ObjectsPath
-
   val threadLocalObjectDBResources = repo.getObjectDatabase.threadLocalResources
-
   val lfsGlob = TextMatcher(Glob, lfsGlobExpression)
-
   val lfsSuitableFiles: (FileName => Boolean) = f => lfsGlob(f.string)
-
   val gitAttributesLine = s"$lfsGlobExpression filter=lfs diff=lfs merge=lfs -text"
 
   implicit val UTF_8 = Charset.forName("UTF-8")
@@ -93,13 +110,9 @@ class LfsBlobConverter(
 
   def tryStoringLfsFileFor(blobId: ObjectId)(implicit r: ObjectReader): Try[Pointer] = {
     val loader = blobId.open
-    
-    val tmpFile = createTempFile(s"bfg.git-lfs.conv-${blobId.name}")
-    
+    val tmpFile = createTempFile(s"gitclean.git-lfs.conv-${blobId.name}")
     val pointer = pointerFor(loader, tmpFile)
-
     val lfsPath = lfsObjectsDir / pointer.path
-
     val ensureLfsFile = Try(if (!lfsPath.exists) tmpFile moveTo lfsPath).recover {
       case _ if lfsPath.size.contains(loader.getSize) =>
     }
@@ -108,5 +121,4 @@ class LfsBlobConverter(
 
     ensureLfsFile.map(_ => pointer)
   }
-
 }

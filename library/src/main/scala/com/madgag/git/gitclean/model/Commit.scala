@@ -1,14 +1,23 @@
-package com.madgag.git.bfg.model
-
-import java.nio.charset.{Charset, IllegalCharsetNameException, UnsupportedCharsetException}
-
-import com.madgag.git._
-import com.madgag.git.bfg.cleaner._
-import org.eclipse.jgit.lib.Constants.OBJ_COMMIT
-import org.eclipse.jgit.lib._
-import org.eclipse.jgit.revwalk.RevCommit
-
-import scala.collection.convert.ImplicitConversionsToJava
+/*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
 
 /*
  * Copyright (c) 2012, 2013 Roberto Tyley
@@ -30,6 +39,18 @@ import scala.collection.convert.ImplicitConversionsToJava
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
+package com.madgag.git.gitclean.model
+
+import java.nio.charset.{Charset, IllegalCharsetNameException, UnsupportedCharsetException}
+
+import com.madgag.git._
+import com.madgag.git.gitclean.cleaner._
+
+import org.eclipse.jgit.lib.Constants.OBJ_COMMIT
+import org.eclipse.jgit.lib._
+import org.eclipse.jgit.revwalk.RevCommit
+
+import scala.collection.convert.ImplicitConversionsToJava
 
 object Commit {
   def apply(revCommit: RevCommit): Commit = Commit(CommitNode(revCommit), revCommit.arcs)
@@ -40,6 +61,7 @@ case class Commit(node: CommitNode, arcs: CommitArcs) {
     import ImplicitConversionsToJava._
 
     val c = new CommitBuilder
+
     c.setParentIds(arcs.parents)
     c.setTreeId(arcs.tree)
 

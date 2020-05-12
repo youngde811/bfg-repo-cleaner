@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,10 +39,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg
+package com.madgag.git.gitclean
 
 import com.google.common.cache.{CacheBuilder, CacheLoader, CacheStats, LoadingCache}
-import com.madgag.git.bfg.cleaner._
+import com.madgag.git.gitclean.cleaner._
 
 import scala.collection.JavaConverters._
 
@@ -36,15 +57,12 @@ trait MemoFunc[K,V] extends (K => V) {
 }
 
 object MemoUtil {
-
   def memo[K, V](f: (K => V) => MemoFunc[K, V]): Memo[K, V] = new Memo[K, V] {
     def apply(z: K => V) = f(z)
   }
 
-  /**
-   *
-   * A caching wrapper for a function (V => V), backed by a no-eviction LoadingCache from Google Collections.
-   */
+  // A caching wrapper for a function (V => V), backed by a no-eviction LoadingCache from Google Collections.
+
   def concurrentCleanerMemo[V](fixedEntries: Set[V] = Set.empty[V]): Memo[V, V] = {
     memo[V, V] {
       (f: Cleaner[V]) =>
@@ -52,6 +70,7 @@ object MemoUtil {
 
         def fix(v: V) {
           // enforce that once any value is returned, it is 'good' and therefore an identity-mapped key as well
+
           permanentCache.put(v, v)
         }
 
