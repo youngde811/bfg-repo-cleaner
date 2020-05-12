@@ -39,7 +39,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg
+package com.madgag.git.gitclean
 
 import com.google.common.primitives.Ints
 import com.madgag.git.gitclean.cleaner._

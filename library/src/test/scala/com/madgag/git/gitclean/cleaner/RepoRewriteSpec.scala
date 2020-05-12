@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,7 +39,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cleaner
+package com.madgag.git.gitclean.cleaner
 
 import java.io.StringReader
 import java.net.URLEncoder
@@ -26,23 +47,25 @@ import java.util.Properties
 import java.util.regex.Pattern._
 
 import com.madgag.git._
-import com.madgag.git.bfg.GitUtil._
-import com.madgag.git.bfg.cleaner.ObjectIdSubstitutor._
-import com.madgag.git.bfg.cleaner.protection.ProtectedObjectCensus
-import com.madgag.git.bfg.model.TreeBlobEntry
+import com.madgag.git.gitclean.GitUtil._
+import com.madgag.git.gitclean.cleaner.ObjectIdSubstitutor._
+import com.madgag.git.gitclean.cleaner.protection.ProtectedObjectCensus
+import com.madgag.git.gitclean.model.TreeBlobEntry
 import com.madgag.git.test._
 import com.madgag.textmatching._
+
 import org.apache.commons.io.FilenameUtils
+
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.util.RawParseUtils
+
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.PartialFunction.condOpt
 import scala.collection.convert.ImplicitConversionsToScala._
 
 class RepoRewriteSpec extends FlatSpec with Matchers {
-
   "Git repo" should "not explode" in {
     implicit val repo = unpackRepo("/sample-repos/example.git.zip")
     implicit val reader = repo.newObjectReader
@@ -50,7 +73,8 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
     hasBeenProcessedByBFGBefore(repo) shouldBe false
 
     val blobsToRemove = Set(abbrId("06d740"))
-    RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus(Set("HEAD")), OldIdsPublic, Seq(FormerCommitFooter), treeBlobsCleaners = Seq(new BlobRemover(blobsToRemove))))
+    RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus(Set("HEAD")), OldIdsPublic,
+      Seq(FormerCommitFooter), treeBlobsCleaners = Seq(new BlobRemover(blobsToRemove))))
 
     val allCommits = repo.git.log.all.call.toSeq
 
@@ -74,7 +98,8 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
 
     commitMessageForRev("pure") should include("6e76960ede2addbbe7e")
 
-    RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus.None, OldIdsPrivate, Seq(new CommitMessageObjectIdsUpdater(OldIdsPrivate)), treeBlobsCleaners = Seq(new FileDeleter(Literal("sin")))))
+    RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus.None, OldIdsPrivate,
+      Seq(new CommitMessageObjectIdsUpdater(OldIdsPrivate)), treeBlobsCleaners = Seq(new FileDeleter(Literal("sin")))))
 
     commitMessageForRev("pure") should not include "6e76960ede2addbbe7e"
   }
@@ -105,12 +130,10 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
 
       val threadLocalObjectDBResources = repo.getObjectDatabase.threadLocalResources
     }
+
     val cleanedObjectMap = RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus(Set("HEAD")), treeBlobsCleaners = Seq(blobTextModifier)))
-
     val oldCommitContainingPasswords = abbrId("37bcc89")
-
     val cleanedCommitWithPasswordsRemoved = cleanedObjectMap(oldCommitContainingPasswords).asRevCommit
-
     val originalContents = passwordFileContentsIn(oldCommitContainingPasswords)
     val cleanedContents = passwordFileContentsIn(cleanedCommitWithPasswordsRemoved)
 
@@ -121,7 +144,6 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
     propertiesIn(cleanedContents).toMap should have size propertiesIn(originalContents).size
   }
 
-
   def textReplacementOf(parentPath: String, fileNamePrefix: String, fileNamePostfix: String, before: String, after: String) = {
     implicit val repo = unpackRepo("/sample-repos/encodings.git.zip")
 
@@ -130,10 +152,10 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
 
       val threadLocalObjectDBResources = repo.getObjectDatabase.threadLocalResources
     }
+
     RepoRewriter.rewrite(repo, ObjectIdCleaner.Config(ProtectedObjectCensus.None, treeBlobsCleaners = Seq(blobTextModifier)))
 
     val beforeAndAfter = Seq(before, after).map(URLEncoder.encode(_, "UTF-8")).mkString("-")
-
     val beforeFile = s"$parentPath/$fileNamePrefix-ORIGINAL.$fileNamePostfix"
     val afterFile = s"$parentPath/$fileNamePrefix-MODIFIED-$beforeAndAfter.$fileNamePostfix"
 
@@ -154,5 +176,4 @@ class RepoRewriteSpec extends FlatSpec with Matchers {
   it should "handle ASCII in ISO-8859-1" in textReplacementOf("ISO-8859-1", "laparabla", "txt", "palpitando", "buscando")
 
   it should "handle converting Windows newlines to Unix" in textReplacementOf("newlines", "windows", "txt", "\r\n", "\n")
-
 }

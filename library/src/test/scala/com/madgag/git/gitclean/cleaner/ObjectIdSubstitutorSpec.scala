@@ -1,4 +1,25 @@
 /*
+ * Copyright (c) 2020 David Young (youngde811@pobox.com)
+ *
+ * This file is part of Gitclean - a tool for removing large or troublesome blobs
+ * from Git repositories. It is a fork from the original BFG Repo-Cleaner by
+ * Roberto Tyley.
+ * 
+ * Gitclean is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gitclean is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/ .
+ */
+
+/*
  * Copyright (c) 2012, 2013 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
@@ -18,16 +39,16 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-package com.madgag.git.bfg.cleaner
+package com.madgag.git.gitclean.cleaner
 
 import com.madgag.git._
-import com.madgag.git.bfg.cleaner.ObjectIdSubstitutor.hexRegex
+import com.madgag.git.gitclean.cleaner.ObjectIdSubstitutor.hexRegex
 import com.madgag.git.test._
+
 import org.eclipse.jgit.lib.ObjectId
 import org.scalatest.{FlatSpec, Matchers}
 
 class ObjectIdSubstitutorSpec extends FlatSpec with Matchers {
-
   "Object Id Substitutor regex" should "match hex strings" in {
     "01234567890" should include regex hexRegex
 
@@ -50,5 +71,4 @@ class ObjectIdSubstitutorSpec extends FlatSpec with Matchers {
 
     cleanedMessage shouldBe "See 06d7405020018d [formerly 3699910d2baab1] for backstory"
   }
-
 }
