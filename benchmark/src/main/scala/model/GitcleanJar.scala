@@ -41,4 +41,10 @@
 
 package model
 
-case class Java(javaCmd: String, version: String)
+import scalax.file.Path
+
+object GitcleanJar {
+  def from(path: Path) = GitcleanJar(path, Map.empty)
+}
+
+case class GitcleanJar(path: Path, mavenDependencyVersions: Map[String, String])
