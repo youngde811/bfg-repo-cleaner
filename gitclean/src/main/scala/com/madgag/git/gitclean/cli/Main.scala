@@ -44,7 +44,6 @@ package com.madgag.git.gitclean.cli
 import com.madgag.git._
 import com.madgag.git.gitclean.GitUtil._
 import com.madgag.git.gitclean.cleaner._
-import com.madgag.git.gitclean.cli.stoptrump.dontGiveUp
 
 object Main extends App {
   if (args.isEmpty) {
