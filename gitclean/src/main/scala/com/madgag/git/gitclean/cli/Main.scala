@@ -39,25 +39,47 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cli
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git._
+import com.madgag.git.gitclean.GitUtil._
+import com.madgag.git.gitclean.cleaner._
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+object Main extends App {
+  if (args.isEmpty) {
+    CLIConfig.parser.showUsage
+  } else {
+    CLIConfig.parser.parse(args, CLIConfig()) map {
+      config =>
+      tweakStaticJGitConfig(config.massiveNonFileObjects)
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+        if (config.gitdir.isEmpty) {
+          CLIConfig.parser.showUsage
+          Console.err.println("Main(): aborting : " + config.repoLocation + " is not a valid Git repository!")
+        } else {
+          implicit val repo = config.repo
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+          println("Using repo : " + repo.getDirectory.getAbsolutePath)
+
+          // do this before implicitly initiating big-blob search
+
+          if (hasBeenProcessedByGitcleanBefore(repo)) {
+            println("This repo has been processed by Gitclean before! Will prune repo before proceeding to avoid unnecessary work on unused objects.")
+            repo.git.gc.call()
+            println("Completed prune of old objects.")
+          }
+
+          if (config.definesNoWork) {
+            Console.err.println("Main(): please specify tasks for Gitclean:")
+            CLIConfig.parser.showUsage
+          } else {
+            println("Found " + config.objectProtection.fixedObjectIds.size + " objects to protect")
+
+            RepoRewriter.rewrite(repo, config.objectIdCleanerConfig)
+
+            repo.close()
+          }
+        }
+    }
+  }
 }

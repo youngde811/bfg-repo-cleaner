@@ -39,25 +39,39 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cleaner
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git.gitclean.cleaner.kit.BlobInserter
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import com.madgag.git.bfg.model.FileName.ImplicitConversions._
+import com.madgag.git.bfg.model.{TreeBlobEntry, _}
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+import com.madgag.textmatching.TextMatcher
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+import org.eclipse.jgit.lib.ObjectId
+
+class FileDeleter(fileNameMatcher: TextMatcher) extends Cleaner[TreeBlobs] {
+  override def apply(tbs: TreeBlobs) = tbs.entries.filterNot(e => fileNameMatcher(e.filename))
 }
+
+class BlobRemover(blobIds: Set[ObjectId]) extends Cleaner[TreeBlobs] {
+  override def apply(treeBlobs: TreeBlobs) = treeBlobs.entries.filter(e => !blobIds.contains(e.objectId))
+}
+
+class BlobReplacer(badBlobs: Set[ObjectId], blobInserter: => BlobInserter) extends Cleaner[TreeBlobs] {
+  override def apply(treeBlobs: TreeBlobs) = treeBlobs.entries.map {
+    case e if badBlobs.contains(e.objectId) =>
+      TreeBlobEntry(FileName(e.filename + ".REMOVED.git-id"), RegularFile, blobInserter.insert(e.objectId.name.getBytes))
+    case e => e
+  }
+}
+
+
+
+
+
+
+
+
+
+

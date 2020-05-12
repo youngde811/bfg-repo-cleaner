@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (c) 2012 Roberto Tyley
+ * Copyright (c) 2012, 2013 Roberto Tyley
  *
  * This file is part of 'BFG Repo-Cleaner' - a tool for removing large
  * or troublesome blobs from Git repositories.
@@ -39,25 +39,36 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean.cleaner
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import com.madgag.git._
+import com.madgag.git.gitclean.cleaner.ObjectIdSubstitutor.hexRegex
+import com.madgag.git.test._
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import org.eclipse.jgit.lib.ObjectId
+import org.scalatest.{FlatSpec, Matchers}
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+class ObjectIdSubstitutorSpec extends FlatSpec with Matchers {
+  "Object Id Substitutor regex" should "match hex strings" in {
+    "01234567890" should include regex hexRegex
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+    "decade2001" should include regex hexRegex
+
+    "This is decade2001" should include regex hexRegex
+
+    "This is decade2001 I say" should include regex hexRegex
+
+    "This is Gdecade2001 I say" shouldNot include regex hexRegex
+
+    "This is decade2001X I say" shouldNot include regex hexRegex
+  }
+
+  "Object Id" should "be substituted in commit message" in {
+    implicit val repo = unpackRepo("/sample-repos/example.git.zip")
+    implicit val reader = repo.newObjectReader
+
+    val cleanedMessage = ObjectIdSubstitutor.OldIdsPublic.replaceOldIds("See 3699910d2baab1 for backstory", reader, (_: ObjectId) => abbrId("06d7405020018d"))
+
+    cleanedMessage shouldBe "See 06d7405020018d [formerly 3699910d2baab1] for backstory"
+  }
 }

@@ -39,25 +39,24 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-import sbt._
+package com.madgag.git.gitclean
 
-object Dependencies {
-  val scalaGitVersion = "4.0"
-  val jgitVersionOverride = Option(System.getProperty("jgit.version"))
-  val jgitVersion = jgitVersionOverride.getOrElse("4.4.1.201607150455-r")
-  val jgit = "org.eclipse.jgit" % "org.eclipse.jgit" % jgitVersion
+import java.lang.System._
+import java.util.concurrent.TimeUnit.NANOSECONDS
 
-  // the 1.7.2 here matches slf4j-api in jgit's dependencies
+import org.eclipse.jgit.lib.ProgressMonitor
 
-  val slf4jSimple = "org.slf4j" % "slf4j-simple" % "1.7.2"
+object Timing {
+  def measureTask[T](taskName: String, workSize: Int)(block: => T)(implicit progressMonitor: ProgressMonitor) = {
+    progressMonitor.beginTask(taskName, workSize)
 
-  val scalaGit = "com.madgag.scala-git" %% "scala-git" % scalaGitVersion exclude("org.eclipse.jgit", "org.eclipse.jgit")
-  val scalaGitTest = "com.madgag.scala-git" %% "scala-git-test" % scalaGitVersion
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.4"
-  val madgagCompress = "com.madgag" % "util-compress" % "1.33"
-  val textmatching = "com.madgag" %% "scala-textmatching" % "2.3"
-  val scopt = "com.github.scopt" %% "scopt" % "3.5.0"
-  val guava = Seq("com.google.guava" % "guava" % "19.0", "com.google.code.findbugs" % "jsr305" % "2.0.3")
-  val scalaIoFile = "com.madgag" %% "scala-io-file" % "0.4.9"
-  val useNewerJava =  "com.madgag" % "use-newer-java" % "0.1"
+    val start = nanoTime
+    val result = block
+    val duration = nanoTime - start
+
+    progressMonitor.endTask()
+    println(taskName + " completed in %,d ms.".format(NANOSECONDS.toMillis(duration)))
+
+    result
+  }
 }
