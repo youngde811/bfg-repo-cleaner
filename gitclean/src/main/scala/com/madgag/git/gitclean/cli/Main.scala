@@ -63,7 +63,7 @@ object Main extends App {
 
           // do this before implicitly initiating big-blob search
 
-          if (hasBeenProcessedByGitCleanBefore(repo)) {
+          if (hasBeenProcessedByGitcleanBefore(repo)) {
             println("This repo has been processed by Gitclean before! Will prune repo before proceeding to avoid unnecessary work on unused objects.")
             repo.git.gc.call()
             println("Completed prune of old objects.")

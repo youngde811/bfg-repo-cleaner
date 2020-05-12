@@ -42,8 +42,10 @@
 package com.madgag.git.gitclean.cleaner
 
 import com.madgag.git.gitclean.cleaner.kit.BlobInserter
-import com.madgag.git.gitclean.model.FileName.ImplicitConversions._
-import com.madgag.git.gitclean.model.{TreeBlobEntry, _}
+
+import com.madgag.git.bfg.model.FileName.ImplicitConversions._
+import com.madgag.git.bfg.model.{TreeBlobEntry, _}
+
 import com.madgag.textmatching.TextMatcher
 
 import org.eclipse.jgit.lib.ObjectId

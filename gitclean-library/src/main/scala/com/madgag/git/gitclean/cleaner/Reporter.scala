@@ -48,7 +48,9 @@ import java.util.Date
 import com.madgag.collection.concurrent.ConcurrentMultiMap
 import com.madgag.git._
 import com.madgag.git.gitclean.cleaner.protection.{ProtectedObjectCensus, ProtectedObjectDirtReport}
-import com.madgag.git.gitclean.model.FileName
+
+import com.madgag.git.bfg.model.FileName
+
 import com.madgag.text.Text._
 import com.madgag.text.{ByteSize, Tables, Text}
 

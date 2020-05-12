@@ -41,7 +41,7 @@
 
 package com.madgag.git.gitclean.cli
 
-import com.madgag.git.gitclean.model.FileName
+import com.madgag.git.bfg.model.FileName
 
 import org.scalatest.{FlatSpec, Matchers}
 
