@@ -19,3 +19,4 @@ At a minimum, Gitclean may be used to:
 * Removing **Passwords, Credentials** and other **Private data**
 
 As previously written, until Gitclean has a proper website, the main documention for BFG still applies : **https://rtyley.github.io/bfg-repo-cleaner/**
+
